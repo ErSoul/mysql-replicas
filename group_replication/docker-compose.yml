@@ -1,0 +1,43 @@
+version: "0.1"
+services:
+    primary:
+        build:
+            context: .
+            dockerfile: primary_node/Dockerfile
+        container_name: primary-node
+        command: mysqld --server-id=1 --relay-log=group-replica
+        environment:
+            MYSQL_ALLOW_EMPTY_PASSWORD: true
+            MYSQL_REPLICA_USER: ${MYSQL_REPLICA_USER}
+            MYSQL_REPLICA_USER_PASSWORD: ${MYSQL_REPLICA_USER_PASSWORD}
+        expose:
+            - 3306
+            - 33061
+        networks:
+            mysql-group-net:
+                ipv4_address: 10.1.2.2
+    replica:
+        depends_on:
+            - primary
+        build:
+            context: .
+            dockerfile: replica_node/Dockerfile
+        container_name: replica-node1
+        command: mysqld --server-id=2 --relay-log=group-replica
+        environment:
+            MYSQL_ALLOW_EMPTY_PASSWORD: true
+            MYSQL_REPLICA_USER: ${MYSQL_REPLICA_USER}
+            MYSQL_REPLICA_USER_PASSWORD: ${MYSQL_REPLICA_USER_PASSWORD}
+        expose:
+            - 3306
+            - 33061
+        networks:
+            mysql-group-net:
+
+networks:
+    mysql-group-net:
+        name: mysql-net
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 10.1.2.0/29

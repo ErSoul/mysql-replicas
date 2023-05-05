@@ -1,0 +1,32 @@
+version: "0.1"
+
+services:
+    primary-node:
+        build:
+            context: .
+            dockerfile: primary_node/Dockerfile
+        command: mysqld --server-id=100 # Very large number to avoid conflict with replica instances
+        environment:
+            MYSQL_ALLOW_EMPTY_PASSWORD: true
+            CLUSTER_NAME: ${CLUSTER_NAME}
+            CLUSTER_ADMIN: ${CLUSTER_ADMIN}
+            CLUSTER_ADMIN_PASSWORD: ${CLUSTER_ADMIN_PASSWORD}
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        expose:
+            - 3306
+    instance-node:
+        build:
+            context: .
+            dockerfile: replica_node/Dockerfile
+        environment:
+            MYSQL_ALLOW_EMPTY_PASSWORD: true
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        healthcheck:
+            test: "mysqlsh --no-password -- cluster status"
+            interval: 10s
+            timeout: 0s
+            retries: 0
+        expose:
+            - 3306

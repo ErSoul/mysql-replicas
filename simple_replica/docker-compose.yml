@@ -1,0 +1,39 @@
+version: "0.2"
+services:
+    master:
+        build: ./master_node
+        container_name: master-node
+        command: mysqld --server-id=1 --binlog-do-db=${MYSQL_DATABASE} --log-bin=master-bin --relay-log=master-relay-bin
+        environment:
+            MYSQL_ALLOW_EMPTY_PASSWORD: true
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+            REPLICA_USER: ${REPLICA_USER}
+            REPLICA_USER_PASSWORD: ${REPLICA_USER_PASSWORD}
+        expose:
+            - 3306
+        networks:
+            mysql-net:
+                ipv4_address: 10.1.2.2
+    slave:
+        depends_on:
+            - master
+        build: ./slave_node
+        command: mysqld --server-id=2 --binlog-do-db=${MYSQL_DATABASE} --log-bin=slave-bin --relay-log=slave-relay-bin
+        environment:
+            MYSQL_ALLOW_EMPTY_PASSWORD: true
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+            REPLICA_USER: ${REPLICA_USER}
+            REPLICA_USER_PASSWORD: ${REPLICA_USER_PASSWORD}
+        expose:
+            - 3306
+        networks:
+            mysql-net:
+                ipv4_address: 10.1.2.3
+
+networks:
+    mysql-net:
+        name: mysql-net
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 10.1.2.0/29
